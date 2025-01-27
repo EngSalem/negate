@@ -79,7 +79,8 @@ class Negator:
         self._initialize_aux_negations()
         # Store whether tokens have a whitespace after them. This is used later
         # on for de-tokenization.
-        SpacyToken.set_extension("has_space_after", default=True, force=True)
+        if not SpacyToken.has_extension("has_space_after"):
+           SpacyToken.set_extension("has_space_after", default=True)
 
     def negate_sentence(
         self,
@@ -945,10 +946,9 @@ class Negator:
                                   "Install them with:\n\n"
                                   ' pip install "negate[transformers]"\n')
                 sys.exit(1)
-        model_name = (
-            f"en_core_web_trf-{EN_CORE_WEB_TRF_VERSION}" if use_transformers
-            else f"en_core_web_md-{EN_CORE_WEB_MD_VERSION}"
-        )
+
+        model_name = "en_core_web_trf" if use_transformers else "en_core_web_md"
+
         module_name = model_name.split("-")[0]
         try:  # Model installed?
             model_module = importlib.import_module(module_name)
@@ -956,16 +956,19 @@ class Negator:
             self.logger.info("Downloading spaCy model. This only needs to happen "
                              "once. Please, be patient...")
             with suppress_stdout():
-                spacy.cli.download(model_name, True, False, "-q")
+                self.logger.info(f"Please manually install the required spaCy model:")
+                self.logger.info(f"python -m spacy download {module_name}")
             model_module = importlib.import_module(module_name)
-        spacy_model = model_module.load(**kwargs)
+        # spacy_model = model_module.load(**kwargs)
+        spacy_model = spacy.load(module_name)
         installed_model_version: str = spacy_model.meta["version"]
         expected_version: str = model_name.split("-")[1]
         if installed_model_version != expected_version:
             self.logger.info("Updating spaCy model to version %s."
                              " Please, be patient...", expected_version)
             with suppress_stdout():
-                spacy.cli.download(model_name, True, False, "-q")
+                self.logger.info(f"Please manually install the required spaCy model:")
+                self.logger.info(f"python -m spacy download {module_name}")
             model_module = importlib.import_module(module_name)
         return model_module.load(**kwargs)
 
